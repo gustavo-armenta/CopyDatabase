@@ -33,8 +33,8 @@ namespace CopyDatabase
                 Console.WriteLine(ex);
             }
 
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadLine();
+            //Console.WriteLine("Press ENTER to exit");
+            //Console.ReadLine();
         }
     }
 }

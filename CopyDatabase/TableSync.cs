@@ -142,7 +142,7 @@ namespace CopyDatabase
                     await sourceConn.OpenAsync();
                     page++;
                     var commandSource = sourceConn.CreateCommand();
-                    commandSource.CommandText = $"select * from [{this.SourceSchema}].[{this.Table}] {this.SourceFilter} order by {orderByColumns} offset ({page}*{rowsPerPage}) rows fetch next {rowsPerPage} rows only";
+                    commandSource.CommandText = $"select * from [{this.SourceSchema}].[{this.Table}] where 1=1 {this.SourceFilter} order by {orderByColumns} offset ({page}*{rowsPerPage}) rows fetch next {rowsPerPage} rows only";
                     using (var reader = await commandSource.ExecuteReaderAsync())
                     {
                         if (!reader.HasRows)
@@ -285,9 +285,12 @@ namespace CopyDatabase
                             {
                                 var sourceAction = sourceActions[targetActionKey];
                                 sourceAction.IsInsert = false;
-                                if (sourceAction.LastUpdateUtc > targetAction.LastUpdateUtc)
+                                if (sourceAction.LastUpdateUtc < DateTime.UtcNow.AddMinutes(-30)
+                                    && sourceAction.LastUpdateUtc > targetAction.LastUpdateUtc
+                                    && (sourceAction.LastUpdateUtc - targetAction.LastUpdateUtc) > TimeSpan.FromMinutes(2))
                                 {
                                     sourceAction.IsUpdate = true;
+                                    //Console.WriteLine($"IsUpdate=true {this.Table} Key={sourceAction.Key}, EffectiveDateUtc={sourceAction.EffectiveDateUtc.ToString("yyyy-MM-dd HH:mm:ss.fffffff")}, SourceLastUpdateUtc={sourceAction.LastUpdateUtc.ToString("yyyy-MM-dd HH:mm:ss.fffffff")}, TargetLastUpdateUtc={targetAction.LastUpdateUtc.ToString("yyyy-MM-dd HH:mm:ss.fffffff")}");
                                 }
                             }
                             else
