@@ -215,6 +215,8 @@ namespace CopyDatabase
             var page = -1;
             var rowsPerPage = 1000;
             var watch = new Stopwatch();
+            var delay = TimeSpan.FromMinutes(30);
+            var delta = TimeSpan.FromMinutes(5);
             while (true)
             {
                 var sourceActions = new Dictionary<string, TableColumnKeys>();
@@ -256,7 +258,10 @@ namespace CopyDatabase
                         while (readerSource.Read())
                         {
                             var sourceAction = new TableColumnKeys();
-                            sourceAction.IsInsert = true;
+                            if (sourceAction.LastUpdateUtc < DateTime.UtcNow.Subtract(delay))
+                            {
+                                sourceAction.IsInsert = true;
+                            }
                             sourceAction.Key = readerSource.GetString(0);
                             sourceAction.EffectiveDateUtc = readerSource.GetDateTime(1);
                             sourceAction.LastUpdateUtc = readerSource.GetDateTime(2);
@@ -285,10 +290,10 @@ namespace CopyDatabase
                             {
                                 var sourceAction = sourceActions[targetActionKey];
                                 sourceAction.IsInsert = false;
-                                if (sourceAction.LastUpdateUtc < DateTime.UtcNow.AddMinutes(-30)
+                                if (sourceAction.LastUpdateUtc < DateTime.UtcNow.Subtract(delay)
                                     && sourceAction.LastUpdateUtc > targetAction.LastUpdateUtc
-                                    && (sourceAction.LastUpdateUtc - targetAction.LastUpdateUtc) > TimeSpan.FromMinutes(2))
-                                {
+                                    && (sourceAction.LastUpdateUtc - targetAction.LastUpdateUtc) > delta)
+                                {                                    
                                     sourceAction.IsUpdate = true;
                                     //Console.WriteLine($"IsUpdate=true {this.Table} Key={sourceAction.Key}, EffectiveDateUtc={sourceAction.EffectiveDateUtc.ToString("yyyy-MM-dd HH:mm:ss.fffffff")}, SourceLastUpdateUtc={sourceAction.LastUpdateUtc.ToString("yyyy-MM-dd HH:mm:ss.fffffff")}, TargetLastUpdateUtc={targetAction.LastUpdateUtc.ToString("yyyy-MM-dd HH:mm:ss.fffffff")}");
                                 }
